@@ -1,0 +1,29 @@
+name: refresh-token
+
+on:
+  schedule:
+    # 毎週月曜 09:00 JST(= 月曜 00:00 UTC)。トークンの有効期限(約60日)が切れる前に延長する
+    - cron: "0 0 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: トークンを延長して Secrets を更新する
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          # Secrets の書き込み権限だけを持つトークン(このリポジトリ専用)
+          GH_TOKEN: ${{ secrets.GH_PAT_SECRETS }}
+        run: |
+          set -euo pipefail
+          resp=$(curl -sS "https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${IG_ACCESS_TOKEN}")
+          new=$(echo "$resp" | jq -r '.access_token // empty')
+          if [ -z "$new" ]; then
+            echo "更新に失敗しました:"
+            echo "$resp" | jq 'del(.access_token)'
+            exit 1
+          fi
+          echo "::add-mask::$new"
+          gh secret set IG_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY" --body "$new"
+          echo "更新完了。有効期間(秒): $(echo "$resp" | jq -r '.expires_in')"
