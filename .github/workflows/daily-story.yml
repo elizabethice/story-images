@@ -1,0 +1,22 @@
+name: daily-story
+
+on:
+  schedule:
+    # 毎日 10:00 JST(= 01:00 UTC)。GitHubの定時実行は数分〜数十分遅れることがある
+    - cron: "0 1 * * *"
+  workflow_dispatch: {}   # 手動でも実行できる(テスト用)
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python post_story.py
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IMAGE_BASE_URL: https://raw.githubusercontent.com/elizabethice/story-images/main
