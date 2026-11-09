@@ -1,0 +1,23 @@
+name: series-story
+
+on:
+  schedule:
+    # 毎日 12:00 JST(= 03:00 UTC)。GitHubの定時実行は数分〜数十分遅れることがある
+    # 投稿するのは 2026-11-11 〜 2026-11-27 の17日間だけ(期間外は何もしない)
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}   # 手動でも実行できる(テスト用)。期間内なら本当に投稿される
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python post_series_story.py
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IMAGE_BASE_URL: https://raw.githubusercontent.com/elizabethice/story-images/main
