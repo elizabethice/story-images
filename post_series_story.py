@@ -6,6 +6,7 @@ series17/01.jpg〜17.jpg を、START_DATE(JST)から1日1枚ずつ順番に投�
 """
 import os
 import sys
+from pathlib import Path
 import time
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
@@ -22,6 +23,12 @@ def main() -> int:
     n = (now.date() - START_DATE).days + 1  # 開始日が1
     if not 1 <= n <= COUNT:
         print(f"{now:%Y-%m-%d} JST は投稿期間外です(n={n})。何もしません")
+        return 0
+
+    # 同じ日に2回投稿しないための目印(予定実行が遅れて、手動実行と重なった場合など)
+    marker = Path("posted") / f"series-{now.date()}.txt"
+    if marker.exists():
+        print(f"{now:%Y-%m-%d} の分は投稿済みです。何もしません")
         return 0
 
     user_id = os.environ["IG_USER_ID"]
@@ -63,6 +70,8 @@ def main() -> int:
         print("公開に失敗:", p.status_code, p.text.replace(token, "***"))
         return 1
     print("投稿完了:", p.json().get("id"))
+    marker.parent.mkdir(exist_ok=True)
+    marker.write_text(f"{now.isoformat()} series17/{n:02d}.jpg\n")
     return 0
 
 
