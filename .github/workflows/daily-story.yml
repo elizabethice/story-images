@@ -2,9 +2,19 @@ name: daily-story
 
 on:
   schedule:
-    # 毎日 10:00 JST(= 01:00 UTC)。GitHubの定時実行は数分〜数十分遅れることがある
+    # 毎日 10:00 JST(= 01:00 UTC)。GitHubの定時実行は数時間遅れることがある
     - cron: "0 1 * * *"
-  workflow_dispatch: {}   # 手動でも実行できる(テスト用)
+  workflow_dispatch: {}   # 手動でも実行できる(本当に投稿される)
+  push:
+    paths:
+      - "trigger/daily.txt"   # このファイルを更新(push)すると即実行される
+
+# 同時に2つ動かさない
+concurrency:
+  group: daily-story
+
+permissions:
+  contents: write   # 「投稿済み」の目印(posted/)を保存するため
 
 jobs:
   post:
@@ -20,3 +30,15 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IMAGE_BASE_URL: https://raw.githubusercontent.com/elizabethice/story-images/main
+      - name: 投稿済みの目印を保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add posted
+          if ! git diff --cached --quiet; then
+            git commit -m "Mark daily story as posted"
+            for i in 1 2 3 4 5; do
+              git pull --rebase origin main && git push origin HEAD:main && break
+              sleep 5
+            done
+          fi

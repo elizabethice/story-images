@@ -9,6 +9,7 @@
 """
 import os
 import sys
+from pathlib import Path
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -25,6 +26,12 @@ def main() -> int:
     base = os.environ["IMAGE_BASE_URL"].rstrip("/")
 
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    # 同じ日に2回投稿しないための目印(予定実行が遅れて、手動・push実行と重なった場合など)
+    marker = Path("posted") / f"daily-{now.date()}.txt"
+    if marker.exists():
+        print(f"{now:%Y-%m-%d} の分は投稿済みです。何もしません")
+        return 0
+
     day = DAYS[now.weekday()]
     image_url = f"{base}/{day}.png"
     print(f"{now:%Y-%m-%d %H:%M} JST -> {day}.png を投稿します")
@@ -65,6 +72,8 @@ def main() -> int:
         print("公開に失敗:", p.status_code, p.text.replace(token, "***"))
         return 1
     print("投稿完了:", p.json().get("id"))
+    marker.parent.mkdir(exist_ok=True)
+    marker.write_text(f"{now.isoformat()}\n")
     return 0
 
 

@@ -38,6 +38,8 @@ jobs:
           git add posted
           if ! git diff --cached --quiet; then
             git commit -m "Mark series story as posted"
-            git pull --rebase origin main
-            git push origin HEAD:main
+            for i in 1 2 3 4 5; do
+              git pull --rebase origin main && git push origin HEAD:main && break
+              sleep 5
+            done
           fi

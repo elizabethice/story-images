@@ -6,6 +6,7 @@ rotation/1.jpg〜5.jpg を、日付ベースで1日1枚ずつ順番に投稿す�
 """
 import os
 import sys
+from pathlib import Path
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -22,6 +23,12 @@ def main() -> int:
     base = os.environ["IMAGE_BASE_URL"].rstrip("/")
 
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    # 同じ日に2回投稿しないための目印(予定実行が遅れて、手動・push実行と重なった場合など)
+    marker = Path("posted") / f"rotation-{now.date()}.txt"
+    if marker.exists():
+        print(f"{now:%Y-%m-%d} の分は投稿済みです。何もしません")
+        return 0
+
     n = now.date().toordinal() % COUNT + 1  # 1〜5
     image_url = f"{base}/rotation/{n}.jpg"
     print(f"{now:%Y-%m-%d %H:%M} JST -> rotation/{n}.jpg を投稿します")
@@ -59,6 +66,8 @@ def main() -> int:
         print("公開に失敗:", p.status_code, p.text.replace(token, "***"))
         return 1
     print("投稿完了:", p.json().get("id"))
+    marker.parent.mkdir(exist_ok=True)
+    marker.write_text(f"{now.isoformat()}\n")
     return 0
 
 
